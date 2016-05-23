@@ -27,7 +27,7 @@ function init(){
     // on crée un mesh correspondant au cube qui chute, auquel on attribue un matériau. Puis on l’ajoute à la scène
     var geometry = new THREE.CubeGeometry( 20, 20, 20 );
     // var material = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
-	var img = THREE.ImageUtils.loadTexture('img/tuile1.jpg'); // ne peut pas marcher en local ?
+	var img = new THREE.TextureLoader().load('img/tuile1.jpg'); // ne peut pas marcher en local ?
 	var material = new THREE.MeshPhongMaterial( { map: img } );
     cube = new THREE.Mesh( geometry, material );
 	cube.position.set(0,200,0);
