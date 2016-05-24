@@ -1,6 +1,8 @@
 var renderer, scene, camera, cube;
 var hauteurFacette = 10;
-var tailleMatrice = 9;
+var tailleMatrice;
+var geometry, material, ombre;
+var grille;
 
 init();
 animate();
@@ -16,6 +18,10 @@ function init(){
 
     // on initialise la scène
     scene = new THREE.Scene();
+	
+	// chargement de la grille depuis les fichiers de grilles
+	grille = loadGrid();
+	tailleMatrice = grille.length;
 
     // on initialise la camera que l’on place ensuite sur la scène
     camera = new THREE.PerspectiveCamera(Math.max(1.5*tailleMatrice, 15), window.innerWidth / window.innerHeight, 1, 10000 );
@@ -25,11 +31,14 @@ function init(){
     scene.add(camera);
     
     // on crée un mesh correspondant au cube qui chute, auquel on attribue un matériau. Puis on l’ajoute à la scène
-    var geometry = new THREE.CubeGeometry( 20, 20, 20 );
-    // var material = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
-	var img = new THREE.TextureLoader().load('img/tuile1.jpg');
-	var material = new THREE.MeshBasicMaterial( { map: img } );
-    cube = new THREE.Mesh( geometry, material );
+    geometry = new THREE.CubeGeometry( 20, 20, 20 );
+	material = new Array();
+	for(var k=0; k<tailleMatrice; k++){
+		var img = new THREE.TextureLoader().load('img/tuile'+(k+1)+'.jpg');
+		material.push(new THREE.MeshBasicMaterial( { map: img } ));
+	}
+	random = Math.round(Math.random() * (tailleMatrice -1));
+    cube = new THREE.Mesh( geometry, material[random] );
 	cube.position.set(0,200,0);
     scene.add( cube );
 	
@@ -62,30 +71,37 @@ function init(){
 			decalageX = 22*(i - Math.floor(tailleMatrice /2));
 			decalageY = 22*(j - Math.floor(tailleMatrice /2));
 			
-			// Base de l'emplacement
-			emplacementBase = new THREE.Mesh( geometryBase, materialBase );
-			emplacementBase.position.set(decalageX, 0, decalageY);
-			scene.add( emplacementBase );
-			
-			//facette gauche
-			emplacementFacetteGD = new THREE.Mesh( geometryFacetteGD, materialFacetteGD );
-			emplacementFacetteGD.position.set(decalageX -10.5,hauteurFacette/2,decalageY);
-			scene.add( emplacementFacetteGD );
-			
-			//facette droite
-			emplacementFacetteGD = new THREE.Mesh( geometryFacetteGD, materialFacetteGD );
-			emplacementFacetteGD.position.set(decalageX +10.5,hauteurFacette/2,decalageY);
-			scene.add( emplacementFacetteGD );
-			
-			//facette haute
-			emplacementFacetteHaut = new THREE.Mesh( geometryFacetteHaut, materialFacetteHaut );
-			emplacementFacetteHaut.position.set(decalageX, hauteurFacette/2, decalageY -10.5);
-			scene.add( emplacementFacetteHaut );
-			
-			//facette basse
-			emplacementFacetteBasse = new THREE.Mesh( geometryFacetteBasse, materialFacetteBasse );
-			emplacementFacetteBasse.position.set(decalageX, hauteurFacette/2, decalageY +10.5);
-			scene.add( emplacementFacetteBasse );
+			if(grille[j][i] > -1) {
+				// Base de l'emplacement
+				emplacementBase = new THREE.Mesh( geometryBase, materialBase );
+				emplacementBase.position.set(decalageX, 0, decalageY);
+				scene.add( emplacementBase );
+				
+				//facette gauche
+				emplacementFacetteGD = new THREE.Mesh( geometryFacetteGD, materialFacetteGD );
+				emplacementFacetteGD.position.set(decalageX -10.5,hauteurFacette/2,decalageY);
+				scene.add( emplacementFacetteGD );
+				
+				//facette droite
+				emplacementFacetteGD = new THREE.Mesh( geometryFacetteGD, materialFacetteGD );
+				emplacementFacetteGD.position.set(decalageX +10.5,hauteurFacette/2,decalageY);
+				scene.add( emplacementFacetteGD );
+				
+				//facette haute
+				emplacementFacetteHaut = new THREE.Mesh( geometryFacetteHaut, materialFacetteHaut );
+				emplacementFacetteHaut.position.set(decalageX, hauteurFacette/2, decalageY -10.5);
+				scene.add( emplacementFacetteHaut );
+				
+				//facette basse
+				emplacementFacetteBasse = new THREE.Mesh( geometryFacetteBasse, materialFacetteBasse );
+				emplacementFacetteBasse.position.set(decalageX, hauteurFacette/2, decalageY +10.5);
+				scene.add( emplacementFacetteBasse );
+			}
+			if( grille[i][j] > 0) {
+				tmp = new THREE.Mesh( geometry, material[grille[i][j] -1] );
+				tmp.position.set(decalageX,10.2,decalageY);
+				scene.add( tmp );
+			}
 		}
 	}
 	
@@ -97,15 +113,26 @@ function animate(){
     requestAnimationFrame( animate );
     // on fait "tomber" le cube le long de l'axe y
 	if (cube.position.y > 10.2) {
-		cube.position.y -= .2;
+		cube.position.y -= 1;
+	}
+	else {
+		x = cube.position.x /22 + Math.floor(tailleMatrice /2);
+		z = cube.position.z /22 + Math.floor(tailleMatrice /2);
+		if(x<0 || x>=tailleMatrice || z<0 || z>=tailleMatrice || grille[z][x] != 0) {
+			scene.remove( cube );
+		}
+		random = Math.round(Math.random() * (tailleMatrice -1));
+		console.log(random);
+		cube = new THREE.Mesh( geometry, material[random] );
+		cube.position.set(0,200,0);
+		scene.add( cube );
+		ombre.position.set(0,hauteurFacette/5,0);
 	}
     // on effectue le rendu de la scène
     renderer.render( scene, camera );
 }
 
 function moveCube(e){
-	console.log(e.keyCode);
-	console.log(e.which);
 	if (cube.position.y > 10.1) {
 		if (e.keyCode == 37 || e.keyCode == 39) {
 			cube.position.x += (e.keyCode - 38) *22;
@@ -119,4 +146,16 @@ function moveCube(e){
 			cube.position.y -= 1;
 		}
 	}
+}
+
+function loadGrid(){
+	return [[0,0,0,2,0,0,0,-1,0],
+			[0,8,0,0,3,0,0,7,0],
+			[3,0,0,5,0,4,0,0,0],
+			[0,0,0,0,0,0,0,2,8],
+			[8,3,0,0,1,0,0,0,0],
+			[0,4,0,7,2,0,3,5,1],
+			[0,7,0,0,5,6,0,0,4],
+			[0,0,3,0,0,0,0,0,0],
+			[2,0,5,4,0,1,6,0,3]];
 }
