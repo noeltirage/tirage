@@ -1,19 +1,19 @@
 var renderer, scene, camera, cube;
 var hauteurFacette = 10;
 var tailleMatrice;
-var geometry, material, ombre;
+var geometry, geometryPlane, material, ombre;
 var grille, grilleCube;
+var chrono = 0;
 
 init();
+setInterval(compteur, 1000);
 animate();
 
 function init(){
-    // on initialise le moteur de rendu
-    renderer = new THREE.WebGLRenderer();
-
-    // si WebGL ne fonctionne pas sur votre navigateur vous pouvez utiliser le moteur de rendu Canvas à la place
-    // renderer = new THREE.CanvasRenderer();
-    renderer.setSize( window.innerWidth*.85, window.innerHeight*.85 );
+    // on initialise le moteur de rendu avec gestion de la transparence
+    renderer = new THREE.WebGLRenderer({alpha : true});
+	
+    renderer.setSize( window.innerWidth*.75, window.innerHeight*.75 );
     document.getElementById('container').appendChild(renderer.domElement);
 
     // on initialise la scène
@@ -28,7 +28,7 @@ function init(){
 
     // on initialise la camera que l’on place ensuite sur la scène
     camera = new THREE.PerspectiveCamera(Math.max(1.5*tailleMatrice, 15), window.innerWidth / window.innerHeight, 1, 10000 );
-    camera.position.set(0, 900, 450);
+    camera.position.set(0, 900, 430);
 	camera.rotation.set(-1.1,0,0);
 	
     scene.add(camera);
@@ -38,10 +38,10 @@ function init(){
 	material = new Array();
 	var materialValide = new Array();
 	for(var k=0; k<tailleMatrice; k++){
-		var img = new THREE.TextureLoader().load('img/tuile'+(k+1)+'.jpg');
-		material.push(new THREE.MeshBasicMaterial( { map: img } ));
-		img = new THREE.TextureLoader().load('img/tuileValide'+(k+1)+'.jpg');
-		materialValide.push(new THREE.MeshBasicMaterial( { map: img } ));
+		var img = new THREE.TextureLoader().load('img/tuileValide'+(k+1)+'.png');
+		material.push(new THREE.MeshBasicMaterial( { map: img, color: 0xBBBBBB } ));
+		img = new THREE.TextureLoader().load('img/tuileValide'+(k+1)+'.png');
+		materialValide.push(new THREE.MeshBasicMaterial( { map: img, color: 0x33FF33 } ));
 	}
 	random = Math.round(Math.random() * (tailleMatrice -1));
     cube = new THREE.Mesh( geometry, material[random] );
@@ -49,9 +49,10 @@ function init(){
     scene.add( cube );
 	
 	// on crée l'ombre de notre cube de la même manière
-    var materialPlane = new THREE.MeshBasicMaterial( { color: 0x999999, wireframe: false, transparent: true, opacity: 0.8 } );
-    ombre = new THREE.Mesh( geometry, materialPlane );
-	ombre.position.set(0,10,0);
+	geometryPlane = new THREE.CubeGeometry( 20, 20, 190 );
+    var materialPlane = new THREE.MeshBasicMaterial( { color: 0xDDDD55, wireframe: false, transparent: true, opacity: 0.6 } );
+    ombre = new THREE.Mesh( geometryPlane, materialPlane );
+	ombre.position.set(0,95,0);
 	ombre.rotation.set(-3.14/2,0,0);
     scene.add( ombre );
 	
@@ -128,6 +129,8 @@ function animate(){
     // on fait "tomber" le cube le long de l'axe y
 	if (cube.position.y > 10.2) {
 		cube.position.y -= 0.2;
+		ombre.position.y -= 0.1;
+		ombre.scale.z -= 1/950;
 	}
 	else {
 		x = cube.position.x /22 + Math.floor(tailleMatrice /2);
@@ -142,12 +145,15 @@ function animate(){
 			if (grille[z][x] == 0) {
 				grilleCube[z][x] = cube;
 			}
+			verifierPosition(z, x, random);
 		}
 		random = Math.round(Math.random() * (tailleMatrice -1));
 		cube = new THREE.Mesh( geometry, material[random] );
+		cube.material.color.setHex( 0xBBBBBB );
 		cube.position.set(0,200,0);
 		scene.add( cube );
-		ombre.position.set(0,10,0);
+		ombre.position.set(0,95,0);
+		ombre.scale.z = 1;
 	}
     // on effectue le rendu de la scène
     renderer.render( scene, camera );
@@ -169,6 +175,12 @@ function moveCube(e){
 	}
 }
 
+function verifierPosition(x, z, value, cubePose) {
+	if (value == 1 || value == 2 || value == 3) {
+		cube.material.color.setHex( 0xFF3333 ); // On doit faire une nouvelle texture, sinon toutes les textures de meme valeurs se changent en meme temps
+	}
+}
+
 function loadGrid(){
 	return [[0,0,0,2,0,0,0,0,0],
 			[0,8,0,0,3,0,0,7,0],
@@ -179,6 +191,13 @@ function loadGrid(){
 			[0,7,0,0,5,6,0,0,4],
 			[0,0,3,0,0,0,0,0,0],
 			[2,0,5,4,0,1,6,0,3]];
+}
+
+function loadGrid4(){
+	return [[0,0,0,2],
+			[0,1,0,0],
+			[3,0,0,1],
+			[0,0,0,0]];
 }
 
 function loadEmptyGrid(){
@@ -193,10 +212,17 @@ function loadEmptyGrid(){
 			[0,0,0,0,0,0,0,0,0]];
 }
 
+function loadEmptyGrid4(){
+	return [[0,0,0,0],
+			[0,0,0,0],
+			[0,0,0,0],
+			[0,0,0,0]];
+}
+
 function loadCubes() {
 	var grilleTmp = new Array();
 	for (var i=0; i<tailleMatrice; i++) {
-		grilleTmp.push(new Array(9));
+		grilleTmp.push(new Array(tailleMatrice));
 	}
 	return grilleTmp;
 }
@@ -213,6 +239,13 @@ function loadZones(){
 			[7,7,7,8,8,8,9,9,9]];
 }
 
+function loadZones4(){
+	return [[1,1,2,2],
+			[1,1,2,2],
+			[3,3,4,4],
+			[3,3,4,4]];
+}
+
 function countZones(grilleZone){
 	var eltPresents = new Set();
 	for (var i=0; i<grilleZone.length; i++) {
@@ -221,4 +254,15 @@ function countZones(grilleZone){
 		}
 	}
 	return eltPresents.size;
+}
+
+function compteur(){
+	chrono ++;
+	var secondes = chrono % 60;
+	var minutes = ((chrono - secondes) / 60) % 60;
+	var heures = (chrono - secondes - 60*minutes) / 3600;
+	var chronoHTML = document.getElementById("chrono");
+	chronoHTML.innerHTML = (heures < 10 ? '0' + heures : heures) +":"
+		+ (minutes < 10 ? '0' + minutes : minutes)+":"
+		+ (secondes < 10 ? '0' + secondes : secondes);
 }
