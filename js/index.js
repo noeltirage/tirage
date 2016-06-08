@@ -5,6 +5,7 @@ var geometry, geometryPlane, material, ombre;
 var grille, grilleCube;
 var chrono = 0;
 
+initCompteur();
 init();
 setInterval(compteur, 1000);
 animate();
