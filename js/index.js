@@ -3,7 +3,8 @@ var hauteurFacette = 10;
 var tailleMatrice;
 var geometry, geometryPlane;
 var material, ombre, materialRefused;
-var grille, grilleCube;
+var grille, grilleCube, grilleInitiale;
+var random;
 var chrono = 0;
 
 init();
@@ -22,6 +23,7 @@ function init(){
 	
 	// chargement de la grille depuis les fichiers de grilles
 	grille = loadGrid();
+	grilleInitiale = loadGrid();
 	tailleMatrice = grille.length;
 	grilleCube = loadCubes();
 	var grilleZone = loadZones();
@@ -45,6 +47,7 @@ function init(){
 		materialValide.push(new THREE.MeshBasicMaterial( { map: img, color: 0x33FF33 } ));
 		materialRefused.push(new THREE.MeshBasicMaterial( { map: img, color: 0xFF3333 } ));
 	}
+	cpt = 0;
 	random = Math.round(Math.random() * (tailleMatrice -1));
     cube = new THREE.Mesh( geometry, material[random] );
 	cube.position.set(0,200,0);
@@ -129,24 +132,25 @@ function animate(){
     // on appelle la fonction animate() récursivement à chaque frame
     requestAnimationFrame( animate );
     // on fait "tomber" le cube le long de l'axe y
-	if (cube.position.y > 10.2) {
+	if (cube.position.y > 10) {
 		cube.position.y -= 0.2;
 		ombre.position.y -= 0.1;
 		ombre.scale.z -= 1/950;
 	}
 	else {
-		x = cube.position.x /22 + Math.floor(tailleMatrice /2);
-		z = cube.position.z /22 + Math.floor(tailleMatrice /2);
-		if(x<0 || x>=tailleMatrice || z<0 || z>=tailleMatrice || grille[z][x] != 0) { // Si on pose le cube en dehors de la grille
+		var x = cube.position.x /22 + Math.floor(tailleMatrice /2);
+		var z = cube.position.z /22 + Math.floor(tailleMatrice /2);
+		if(x<0 || x>=tailleMatrice || z<0 || z>=tailleMatrice || grilleInitiale[z][x] != 0) { // Si on pose le cube en dehors de la grille
 			scene.remove( cube );
 		} else { // Si le cube est dans la grille
 			if (typeof grilleCube[z][x] != 'undefined') { // Si il y a deja un cube a cette position et qu'il n'est pas pose par defaut, on le supprime
 				scene.remove(grilleCube[z][x]);
 			}
-			if (grille[z][x] == 0) {
+			if (grilleInitiale[z][x] == 0) {
 				grilleCube[z][x] = cube;
+				grille[z][x] = random+1;
 			}
-			verifierPosition(z, x, random);
+			verifierPosition(z, x, random+1);
 		}
 		random = Math.round(Math.random() * (tailleMatrice -1));
 		cube = new THREE.Mesh( geometry, material[random] );
@@ -179,24 +183,28 @@ function moveCube(e){
 function verifierPosition(z, x, value, cubePose) {
 	var xRange = [detectXLowRange(x,z), detectXHigRange(x,z)];
 	var zRange = [detectZLowRange(x,z), detectZHigRange(x,z)];
-	
 	for (i = xRange[0]; i <= xRange[1]; i++) {
-		if (grille[z][i] == value) {
-			cube.material = materialRefused[value];
+		if (grille[z][i] == value && i != x) {
+			cube.material = materialRefused[value-1];
+			if (grilleInitiale[z][i] < 1) {
+				grilleCube[z][i].material = materialRefused[value-1];
+			}
 		}
-	};
+	}
 	
 	for (i = zRange[0]; i <= zRange[1]; i++) {
-		if (grille[i][x] == value) {
-			cube.material = materialRefused[value];
+		if (grille[i][x] == value && i != z) {
+			cube.material = materialRefused[value-1];
+			if (grilleInitiale[i][x] < 1) {
+				grilleCube[i][x].material = materialRefused[value-1];
+			}
 		}
-	};
+	}
 	
 }
 
 function detectXLowRange(x,z) {
 	while (x > 0 && grille[z][x] > -1) {
-		console.log(grille[z][x]);
 		x--;
 	}
 	return x;
@@ -231,7 +239,7 @@ function loadGrid(){
 			[8,3,0,0,1,0,0,0,0],
 			[0,4,0,7,2,0,3,5,1],
 			[0,7,0,0,5,6,0,0,4],
-			[0,0,3,0,0,0,0,-1,0],
+			[0,0,3,0,0,0,0,0,0],
 			[2,0,5,4,0,1,6,0,3]];
 }
 
