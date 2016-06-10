@@ -1,9 +1,17 @@
 body {
-	background-color : black;
+	background-color : #222222;
 	text-align : center;
+	color : white;
 }
 
-h1 {
-	color : white;
-	
+#menu {
+	margin : 10% auto auto auto;
+	height : 320px;
+	width : 320px;
+	background-image:url(../img/ecran.png);
+	padding-top : 45px;
+}
+
+a{
+	text-decoration : none;
 }
