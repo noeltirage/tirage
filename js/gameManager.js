@@ -2,10 +2,11 @@ var renderer, scene, camera, cube;
 var hauteurFacette = 10;
 var tailleMatrice;
 var geometry, geometryPlane;
-var material, ombre, materialRefused;
-var grille, grilleCube, grilleInitiale;
+var material, ombre, materialRefused, materialQuestion;
+var grille, grilleCube, grilleInitiale, grilleZone;
 var random;
 var chrono = 0;
+var conflits = 0;
 
 init();
 setInterval(compteur, 1000);
@@ -26,7 +27,7 @@ function init(){
 	grilleInitiale = loadGrid();
 	tailleMatrice = grille.length;
 	grilleCube = loadCubes();
-	var grilleZone = loadZones();
+	grilleZone = loadZones();
 	var nbZone = countZones(grilleZone);
 
     // on initialise la camera que l’on place ensuite sur la scène
@@ -40,12 +41,14 @@ function init(){
     geometry = new THREE.CubeGeometry( 20, 20, 20 );
 	material = new Array();
 	materialRefused = new Array();
+	materialQuestion = new Array();
 	var materialValide = new Array();
 	for(var k=0; k<tailleMatrice; k++){
 		img = new THREE.TextureLoader().load('img/tuileValide'+(k+1)+'.png');
 		material.push(new THREE.MeshBasicMaterial( { map: img, color: 0xBBBBBB } ));
 		materialValide.push(new THREE.MeshBasicMaterial( { map: img, color: 0x33FF33 } ));
 		materialRefused.push(new THREE.MeshBasicMaterial( { map: img, color: 0xFF3333 } ));
+		materialQuestion.push(new THREE.MeshBasicMaterial( { map: img, color: 0xCCDD33 } ));
 	}
 	cpt = 0;
 	random = Math.round(Math.random() * (tailleMatrice -1));
@@ -165,17 +168,44 @@ function animate(){
 }
 
 function moveCube(e){
+	console.log(e.keyCode);
 	if (cube.position.y > 10.1) {
-		if (e.keyCode == 37 || e.keyCode == 39) {
-			cube.position.x += (e.keyCode - 38) *22;
-			ombre.position.x += (e.keyCode - 38) *22;
+		if (e.keyCode == 38 || e.keyCode == 90) {
+			cube.position.z -= 22;
+			ombre.position.z -= 22;
 		}
-		else if (e.keyCode == 38 || e.keyCode == 40) {
-			cube.position.z += (e.keyCode - 39) *22;
-			ombre.position.z += (e.keyCode - 39) *22;
+		else if (e.keyCode == 37 || e.keyCode == 81) {
+			cube.position.x -= 22;
+			ombre.position.x -= 22;
 		}
-		else if (e.which == 48 && cube.position.y > 12) {
-			cube.position.y -= 1;
+		else if (e.keyCode == 40 || e.keyCode == 83) {
+			cube.position.z += 22;
+			ombre.position.z += 22;
+		}
+		else if (e.keyCode == 39 || e.keyCode == 68) {
+			cube.position.x += 22;
+			ombre.position.x += 22;
+		}
+		else if (e.which == 32) {
+			cube.position.y = 10.1;
+		}
+		else if (e.keyCode == 16 || e.keyCode == 69) {
+			if (cube.material == materialQuestion[random]) {
+				cube.material = material[random];
+			}
+			else {
+				cube.material = materialQuestion[random];
+			}
+		}
+		else if (e.keyCode == 17 || e.keyCode == 82) {
+			if (camera.position.x == 0) {
+				camera.position.set(-800, 800, 460);
+				camera.rotation.set(-1.0,-.8,0);
+			}
+			else{
+				camera.position.set(0, 900, 430);
+				camera.rotation.set(-1.1,0,0);
+			}
 		}
 	}
 }
@@ -186,8 +216,10 @@ function verifierPosition(z, x, value, cubePose) {
 	for (i = xRange[0]; i <= xRange[1]; i++) {
 		if (grille[z][i] == value && i != x) {
 			cube.material = materialRefused[value-1];
+			conflits++;
 			if (grilleInitiale[z][i] < 1) {
 				grilleCube[z][i].material = materialRefused[value-1];
+				conflits++;
 			}
 		}
 	}
@@ -195,12 +227,27 @@ function verifierPosition(z, x, value, cubePose) {
 	for (i = zRange[0]; i <= zRange[1]; i++) {
 		if (grille[i][x] == value && i != z) {
 			cube.material = materialRefused[value-1];
+			conflits++;
 			if (grilleInitiale[i][x] < 1) {
 				grilleCube[i][x].material = materialRefused[value-1];
+				conflits++;
 			}
 		}
 	}
 	
+	var currentZone = grilleZone[z][x];
+	for(i = 0; i < tailleMatrice; i++) {
+		for(j = 0; j < tailleMatrice; j++) {
+			if (grilleZone[i][j] == currentZone && grille[i][j] == value && z != i && x != j) {
+				cube.material = materialRefused[value-1];
+				conflits++;
+				if (grilleInitiale[i][j] < 1) {
+					grilleCube[i][j].material = materialRefused[value-1];
+					conflits++;
+				}
+			}
+		}
+	}
 }
 
 function detectXLowRange(x,z) {
@@ -315,4 +362,6 @@ function compteur(){
 	chronoHTML.innerHTML = (heures < 10 ? '0' + heures : heures) +":"
 		+ (minutes < 10 ? '0' + minutes : minutes)+":"
 		+ (secondes < 10 ? '0' + secondes : secondes);
+	var conflitsHTML = document.getElementById("conflits");
+	conflitsHTML.innerHTML = 'Tuiles en conflit : ' + conflits;
 }
