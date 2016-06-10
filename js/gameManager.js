@@ -7,6 +7,7 @@ var grille, grilleCube, grilleInitiale, grilleZone;
 var random;
 var chrono = 0;
 var conflits = 0;
+var partieEnCours = true;
 
 init();
 setInterval(compteur, 1000);
@@ -132,7 +133,7 @@ function init(){
 }
 
 function animate(){
-    // on appelle la fonction animate() récursivement à chaque frame
+	// on appelle la fonction animate() récursivement à chaque frame
     requestAnimationFrame( animate );
     // on fait "tomber" le cube le long de l'axe y
 	if (cube.position.y > 10) {
@@ -146,14 +147,31 @@ function animate(){
 		if(x<0 || x>=tailleMatrice || z<0 || z>=tailleMatrice || grilleInitiale[z][x] != 0) { // Si on pose le cube en dehors de la grille
 			scene.remove( cube );
 		} else { // Si le cube est dans la grille
+			var doitRecalculer = false;
 			if (typeof grilleCube[z][x] != 'undefined') { // Si il y a deja un cube a cette position et qu'il n'est pas pose par defaut, on le supprime
+				if (grilleCube[z][x].material.color.r == 1) {
+					doitRecalculer = true;
+					conflits--;
+				}
 				scene.remove(grilleCube[z][x]);
 			}
 			if (grilleInitiale[z][x] == 0) {
 				grilleCube[z][x] = cube;
 				grille[z][x] = random+1;
 			}
-			verifierPosition(z, x, random+1);
+			if (doitRecalculer) {
+				recalculeConflit(z, x, grille[z][x]);
+			}
+			verifierPosition(z, x, random+1, cube);
+			if (grilleCompletee()) {
+				scene.remove (ombre);
+				scene.add (cube);
+				var conflitsHTML = document.getElementById("conflits");
+				conflitsHTML.innerHTML = 'CONGRATULATIONS! TU AS GAGNE';
+				partieEnCours = false;
+				renderer.render( scene, camera );
+				return;
+			}
 		}
 		random = Math.round(Math.random() * (tailleMatrice -1));
 		cube = new THREE.Mesh( geometry, material[random] );
@@ -168,7 +186,6 @@ function animate(){
 }
 
 function moveCube(e){
-	console.log(e.keyCode);
 	if (cube.position.y > 10.1) {
 		if (e.keyCode == 38 || e.keyCode == 90) {
 			cube.position.z -= 22;
@@ -210,27 +227,35 @@ function moveCube(e){
 	}
 }
 
-function verifierPosition(z, x, value, cubePose) {
+function verifierPosition(z, x, value, currentCube) {
 	var xRange = [detectXLowRange(x,z), detectXHigRange(x,z)];
 	var zRange = [detectZLowRange(x,z), detectZHigRange(x,z)];
 	for (i = xRange[0]; i <= xRange[1]; i++) {
 		if (grille[z][i] == value && i != x) {
-			cube.material = materialRefused[value-1];
-			conflits++;
-			if (grilleInitiale[z][i] < 1) {
-				grilleCube[z][i].material = materialRefused[value-1];
+			if (currentCube.material != materialRefused[value-1]) {
+				currentCube.material = materialRefused[value-1];
 				conflits++;
+			}
+			if (grilleInitiale[z][i] < 1) {
+				if (grilleCube[z][i].material != materialRefused[value-1]) {
+					grilleCube[z][i].material = materialRefused[value-1];
+					conflits++;
+				}
 			}
 		}
 	}
 	
 	for (i = zRange[0]; i <= zRange[1]; i++) {
 		if (grille[i][x] == value && i != z) {
-			cube.material = materialRefused[value-1];
-			conflits++;
-			if (grilleInitiale[i][x] < 1) {
-				grilleCube[i][x].material = materialRefused[value-1];
+			if (currentCube.material != materialRefused[value-1]) {
+				currentCube.material = materialRefused[value-1];
 				conflits++;
+			}
+			if (grilleInitiale[i][x] < 1) {
+				if (grilleCube[i][x].material != materialRefused[value-1]) {
+					grilleCube[i][x].material = materialRefused[value-1];
+					conflits++;
+				}
 			}
 		}
 	}
@@ -239,15 +264,67 @@ function verifierPosition(z, x, value, cubePose) {
 	for(i = 0; i < tailleMatrice; i++) {
 		for(j = 0; j < tailleMatrice; j++) {
 			if (grilleZone[i][j] == currentZone && grille[i][j] == value && z != i && x != j) {
-				cube.material = materialRefused[value-1];
-				conflits++;
-				if (grilleInitiale[i][j] < 1) {
-					grilleCube[i][j].material = materialRefused[value-1];
+				if (currentCube.material != materialRefused[value-1]) {
+					currentCube.material = materialRefused[value-1];
 					conflits++;
+				}
+				if (grilleInitiale[i][j] < 1) {
+					if (grilleCube[i][j].material != materialRefused[value-1]) {
+						grilleCube[i][j].material = materialRefused[value-1];
+						conflits++;
+					}
 				}
 			}
 		}
 	}
+}
+
+function recalculeConflit(z, x, value) {
+	var xRange = [detectXLowRange(x,z), detectXHigRange(x,z)];
+	var zRange = [detectZLowRange(x,z), detectZHigRange(x,z)];
+	for (var i = xRange[0]; i <= xRange[1]; i++) {
+		if (grille[z][i] == value && i != x) {
+			if(grilleInitiale[z][i] == 0){
+				grilleCube[z][i].material = material[value-1];
+				conflits--;
+				verifierPosition(z, x, value, grilleCube[z][i]);
+			}
+		}
+	}
+	
+	for (i = zRange[0]; i <= zRange[1]; i++) {
+		if (grille[i][x] == value && i != z) {
+			if(grilleInitiale[i][x] == 0){
+				grilleCube[i][x].material = material[value-1];
+				conflits--;
+				verifierPosition(z, x, value, grilleCube[i][x]);
+			}
+		}
+	}
+	
+	var currentZone = grilleZone[z][x];
+	for(i = 0; i < tailleMatrice; i++) {
+		for(j = 0; j < tailleMatrice; j++) {
+			if (grilleZone[i][j] == currentZone && grille[i][j] == value && z != i && x != j) {
+				if(grilleInitiale[i][j] == 0){
+					grilleCube[i][j].material = material[value-1];
+					conflits--;
+					verifierPosition(z, x, value, grilleCube[i][j]);
+				}
+			}
+		}
+	}
+}
+
+function grilleCompletee() {
+	for(i=0; i<tailleMatrice; i++) {
+		for(j=0; j<tailleMatrice; j++) {
+			if (!(grilleInitiale[i][j] > -1 && grille[i][j] > 0)) {
+				return false;
+			}
+		}
+	}
+	return (conflits == 0);
 }
 
 function detectXLowRange(x,z) {
@@ -288,6 +365,18 @@ function loadGrid(){
 			[0,7,0,0,5,6,0,0,4],
 			[0,0,3,0,0,0,0,0,0],
 			[2,0,5,4,0,1,6,0,3]];
+}
+
+function loadFullGrid(){
+	return [[1,2,3,4,5,6,7,8,9],
+			[7,8,9,1,2,3,4,5,6],
+			[4,5,6,7,8,9,1,2,3],
+			[2,3,4,5,6,7,8,9,1],
+			[8,9,1,2,0,4,5,6,7],
+			[5,6,7,8,9,1,2,3,4],
+			[9,1,2,3,4,5,6,7,8],
+			[6,7,8,9,1,2,3,4,5],
+			[3,4,5,6,7,8,9,1,2]];
 }
 
 function loadGrid4(){
@@ -354,14 +443,17 @@ function countZones(grilleZone){
 }
 
 function compteur(){
-	chrono ++;
-	var secondes = chrono % 60;
-	var minutes = ((chrono - secondes) / 60) % 60;
-	var heures = (chrono - secondes - 60*minutes) / 3600;
-	var chronoHTML = document.getElementById("chrono");
-	chronoHTML.innerHTML = (heures < 10 ? '0' + heures : heures) +":"
-		+ (minutes < 10 ? '0' + minutes : minutes)+":"
-		+ (secondes < 10 ? '0' + secondes : secondes);
-	var conflitsHTML = document.getElementById("conflits");
-	conflitsHTML.innerHTML = 'Tuiles en conflit : ' + conflits;
+	if (partieEnCours) {
+		chrono ++;
+		var secondes = chrono % 60;
+		var minutes = ((chrono - secondes) / 60) % 60;
+		var heures = (chrono - secondes - 60*minutes) / 3600;
+		var chronoHTML = document.getElementById("chrono");
+		chronoHTML.innerHTML = (heures < 10 ? '0' + heures : heures) +":"
+			+ (minutes < 10 ? '0' + minutes : minutes)+":"
+			+ (secondes < 10 ? '0' + secondes : secondes);
+	
+		var conflitsHTML = document.getElementById("conflits");
+		conflitsHTML.innerHTML = 'Tuiles en conflit : ' + conflits;
+	}
 }
