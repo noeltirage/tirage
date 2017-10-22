@@ -1,0 +1,13 @@
+<div class="col-md-12 ">
+    <div ng-repeat="famille in listeFamilles">
+      <button type="button" class=" col-md-12 btn btn-primary" ng-click="showChilds(famille);">
+        <span class="glyphicon glyphicon-add" aria-hidden="true"></span>
+        {{famille.name}}
+      </button>
+        <span ng-repeat="personne in listePersonnes" ng-if="famille.active && famille.id == personne.famille">
+          <div>
+               {{personne.name}} offre à : {{listePersonnes[personne.offreA].name}} {{listeFamilles[listePersonnes[personne.offreA].famille].name}}
+          </div>
+        </span>
+    </div>
+</div>

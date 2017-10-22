@@ -1,0 +1,76 @@
+
+<br>
+<div class="col-md-12 ">
+
+
+    <div class=" col-md-8">
+        <input  type="text" class="form-control" placeholder="Nom de famille" ng-model="nomFamille" />
+
+    </div>
+
+        <button type="button" class="col-md-4 btn btn-warning " ng-click="addFamily();">
+            <span class="glyphicon glyphicon-add" aria-hidden="true"></span>
+            ajouter famille
+        </button>
+    <br>
+    <br>
+
+    <div class="col-md-4 ">
+        <input  type="text" class="form-control col-md-9" placeholder="Nom" ng-model="nomPersonne" />
+
+    </div>
+
+    <div class="col-md-4 ">
+        <select class="form-control" ng-model="selectFamille">
+            <option ng-repeat="famille in listeFamilles" value="{{famille.id}}">{{famille.name}}</option>
+        </select>
+    </div>
+    <button type="button" class="col-md-4 btn btn-warning " ng-click="addPersonne();">
+        <span class="glyphicon glyphicon-add" aria-hidden="true"></span>
+        ajouter personne
+    </button>
+
+    <br>
+    <br>
+    <br>
+    <br>
+    <br>
+    <button type="button" class="col-md-4 col-md-offset-4 btn btn-info " ng-click="tirage();">
+        <span class="glyphicon glyphicon-add" aria-hidden="true"></span>
+        tirage personne
+    </button>
+</div>
+<div class="col-md-12 " ng-if="done">
+    <br>
+    <br>
+    <br>
+    <br>
+    <div ng-repeat="famille in listeFamilles">
+        <button type="button" class=" col-md-12 btn btn-primary" ng-click="showChilds(famille);">
+            <span class="glyphicon glyphicon-add" aria-hidden="true"></span>
+            {{famille.name}}
+        </button>
+        <span ng-repeat="personne in listePersonnes" ng-if="famille.active && famille.id == personne.famille">
+          <div>
+              {{personne.name}} offre à : {{listePersonnes[personne.offreA].name}} {{listeFamilles[listePersonnes[personne.offreA].famille].name}}
+          </div>
+        </span>
+    </div>
+</div>
+<div class="col-md-12 " ng-if="! done">
+    <br>
+    <br>
+    <br>
+    <br>
+    <div ng-repeat="famille in listeFamilles">
+        <button type="button" class=" col-md-12 btn btn-primary" ng-click="showChilds(famille);">
+            <span class="glyphicon glyphicon-add" aria-hidden="true"></span>
+            {{famille.name}}
+        </button>
+        <span ng-repeat="personne in listePersonnes" ng-if="famille.active && famille.id == personne.famille">
+          <div>
+              {{personne.name}}
+          </div>
+        </span>
+    </div>
+</div>
